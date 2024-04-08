@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,6 +46,7 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
 
     private boolean addSpecialTokens;
     private boolean withOverflowingTokens;
+    private Locale doLowerCase;
     private TruncationStrategy truncation;
     private PaddingStrategy padding;
     private int maxLength;
@@ -54,9 +56,8 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
 
     private HuggingFaceTokenizer(long handle, Map<String, String> options) {
         super(handle);
-        String val = TokenizersLibrary.LIB.getTruncationStrategy(handle);
-        truncation = TruncationStrategy.fromValue(val);
-        val = TokenizersLibrary.LIB.getPaddingStrategy(handle);
+        truncation = TruncationStrategy.LONGEST_FIRST;
+        String val = TokenizersLibrary.LIB.getPaddingStrategy(handle);
         padding = PaddingStrategy.fromValue(val);
         maxLength = TokenizersLibrary.LIB.getMaxLength(handle);
         stride = TokenizersLibrary.LIB.getStride(handle);
@@ -77,6 +78,12 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
             maxLength = ArgumentsUtil.intValue(options, "maxLength", maxLength);
             stride = ArgumentsUtil.intValue(options, "stride", stride);
             padToMultipleOf = ArgumentsUtil.intValue(options, "padToMultipleOf", padToMultipleOf);
+            String lowerCase = options.getOrDefault("doLowerCase", "false");
+            if ("true".equals(lowerCase)) {
+                this.doLowerCase = Locale.getDefault();
+            } else if (!"false".equals(lowerCase)) {
+                this.doLowerCase = Locale.forLanguageTag(lowerCase);
+            }
         } else {
             addSpecialTokens = true;
             modelMaxLength = 512;
@@ -210,6 +217,9 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
      * @return the {@code Encoding} of the input sentence
      */
     public Encoding encode(String text, boolean addSpecialTokens, boolean withOverflowingTokens) {
+        if (doLowerCase != null) {
+            text = text.toLowerCase(doLowerCase);
+        }
         long encoding = TokenizersLibrary.LIB.encode(getHandle(), text, addSpecialTokens);
         return toEncoding(encoding, withOverflowingTokens);
     }
@@ -236,6 +246,11 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
      */
     public Encoding encode(
             String text, String textPair, boolean addSpecialTokens, boolean withOverflowingTokens) {
+        if (doLowerCase != null) {
+            text = text.toLowerCase(doLowerCase);
+            textPair = textPair.toLowerCase(doLowerCase);
+        }
+
         long encoding =
                 TokenizersLibrary.LIB.encodeDual(getHandle(), text, textPair, addSpecialTokens);
         return toEncoding(encoding, withOverflowingTokens);
@@ -288,6 +303,11 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
      */
     public Encoding encode(
             String[] inputs, boolean addSpecialTokens, boolean withOverflowingTokens) {
+        if (doLowerCase != null) {
+            for (int i = 0; i < inputs.length; ++i) {
+                inputs[i] = inputs[i].toLowerCase(doLowerCase);
+            }
+        }
         long encoding = TokenizersLibrary.LIB.encodeList(getHandle(), inputs, addSpecialTokens);
         return toEncoding(encoding, withOverflowingTokens);
     }
@@ -338,6 +358,11 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
      */
     public Encoding[] batchEncode(
             String[] inputs, boolean addSpecialTokens, boolean withOverflowingTokens) {
+        if (doLowerCase != null) {
+            for (int i = 0; i < inputs.length; ++i) {
+                inputs[i] = inputs[i].toLowerCase(doLowerCase);
+            }
+        }
         long[] encodings = TokenizersLibrary.LIB.batchEncode(getHandle(), inputs, addSpecialTokens);
         Encoding[] ret = new Encoding[encodings.length];
         for (int i = 0; i < encodings.length; ++i) {
@@ -371,6 +396,14 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
             boolean withOverflowingTokens) {
         String[] text = inputs.keyArray(Utils.EMPTY_ARRAY);
         String[] textPair = inputs.valueArray(Utils.EMPTY_ARRAY);
+        if (doLowerCase != null) {
+            for (int i = 0; i < text.length; ++i) {
+                text[i] = text[i].toLowerCase(doLowerCase);
+            }
+            for (int i = 0; i < textPair.length; ++i) {
+                textPair[i] = textPair[i].toLowerCase(doLowerCase);
+            }
+        }
         long[] encodings =
                 TokenizersLibrary.LIB.batchEncodePair(
                         getHandle(), text, textPair, addSpecialTokens);
@@ -818,6 +851,28 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
          */
         public Builder optStride(int stride) {
             options.put("stride", String.valueOf(stride));
+            return this;
+        }
+
+        /**
+         * Sets the doLowerCase for the tokenizer.
+         *
+         * @param doLowerCase {@code true} to enable convert to lowercase
+         * @return this builder
+         */
+        public Builder optDoLowerCase(boolean doLowerCase) {
+            options.put("doLowerCase", String.valueOf(doLowerCase));
+            return this;
+        }
+
+        /**
+         * Sets the doLowerCase for the tokenizer with specific locale.
+         *
+         * @param locale the locale to use when converting to lowercase
+         * @return this builder
+         */
+        public Builder optDoLowerCase(String locale) {
+            options.put("doLowerCase", locale);
             return this;
         }
 
