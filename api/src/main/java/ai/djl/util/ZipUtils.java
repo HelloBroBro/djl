@@ -52,7 +52,7 @@ public final class ZipUtils {
         ZipEntry entry;
         Set<String> set = new HashSet<>();
         while ((entry = zis.getNextEntry()) != null) {
-            String name = entry.getName();
+            String name = removeLeadingFileSeparator(entry.getName());
             if (name.contains("..")) {
                 throw new IOException("Malicious zip entry: " + name);
             }
@@ -119,6 +119,16 @@ public final class ZipUtils {
             zos.putNextEntry(entry);
             Files.copy(file, zos);
         }
+    }
+
+    static String removeLeadingFileSeparator(String name) {
+        int index = 0;
+        for (; index < name.length(); index++) {
+            if (name.charAt(index) != File.separatorChar) {
+                break;
+            }
+        }
+        return name.substring(index);
     }
 
     private static final class ValidationInputStream extends FilterInputStream {
@@ -223,7 +233,7 @@ public final class ZipUtils {
                         // Let's do some extra verification, we don't care about the
                         // performance in this situation.
                         int cenpos = end.endpos - end.cenlen;
-                        int locpos = cenpos - end.cenoff;
+                        int locpos = Math.toIntExact(cenpos - end.cenoff);
                         if (cenpos < 0
                                 || locpos < 0
                                 || bb.getInt(cenpos) != CENSIG
@@ -243,7 +253,7 @@ public final class ZipUtils {
 
                     // end64 candidate found,
                     int cenlen64 = Math.toIntExact(bb.getLong(relativePos + 40));
-                    int cenoff64 = Math.toIntExact(bb.getLong(relativePos + 48));
+                    long cenoff64 = bb.getLong(relativePos + 48);
                     // double-check
                     if (cenlen64 != end.cenlen && end.cenlen > 0
                             || cenoff64 != end.cenoff && end.cenoff > 0) {
@@ -303,7 +313,7 @@ public final class ZipUtils {
 
         private static final class End {
             int cenlen; // 4 bytes
-            int cenoff; // 4 bytes
+            long cenoff; // 4 bytes
             int endpos; // 4 bytes
         }
     }
