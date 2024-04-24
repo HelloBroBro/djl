@@ -12,14 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod ndarray;
+
+#[cfg(feature = "cuda")]
+mod compute_cap;
+mod models;
+
 extern crate tokenizers as tk;
+
+#[cfg(feature = "cuda")]
+use crate::compute_cap::get_runtime_compute_cap;
 
 use std::str::FromStr;
 
+use jni::errors::Error;
 use jni::objects::{
     JClass, JLongArray, JMethodID, JObject, JObjectArray, JString, JValue, ReleaseMode,
 };
-use jni::sys::{jboolean, jint, jlong, jsize, jvalue, JNI_TRUE};
+#[cfg(feature = "cuda")]
+use jni::sys::JNI_FALSE;
+
+use jni::sys::{jboolean, jint, jlong, jobjectArray, jsize, jvalue, JNI_TRUE};
 use jni::JNIEnv;
 use tk::models::bpe::BPE;
 use tk::tokenizer::{EncodeInput, Encoding};
@@ -27,8 +40,6 @@ use tk::utils::padding::{PaddingParams, PaddingStrategy};
 use tk::utils::truncation::{TruncationParams, TruncationStrategy};
 use tk::Tokenizer;
 use tk::{FromPretrainedParameters, Offsets};
-
-mod ndarray;
 
 #[no_mangle]
 pub extern "system" fn Java_ai_djl_huggingface_tokenizers_jni_TokenizersLibrary_createTokenizer<
@@ -782,6 +793,22 @@ pub extern "system" fn Java_ai_djl_huggingface_tokenizers_jni_TokenizersLibrary_
     let _ = tokenizer.with_truncation(None);
 }
 
+#[no_mangle]
+pub extern "system" fn Java_ai_djl_engine_rust_RustLibrary_isCudaAvailable<'local>(
+    _: JNIEnv,
+    _: JObject,
+) -> jboolean {
+    #[cfg(feature = "cuda")]
+    match get_runtime_compute_cap() {
+        75 | 80 | 86..=90 => JNI_TRUE,
+        _ => JNI_FALSE,
+    }
+    #[cfg(not(feature = "cuda"))]
+    {
+        JNI_TRUE
+    }
+}
+
 fn to_handle<T: 'static>(val: T) -> jlong {
     let handle = Box::into_raw(Box::new(val)) as jlong;
     handle
@@ -798,4 +825,15 @@ fn drop_handle<T: 'static>(handle: jlong) {
     unsafe {
         let _ = Box::from_raw(handle as *mut T);
     }
+}
+
+fn to_string_array(env: &mut JNIEnv, data: Vec<String>) -> Result<jobjectArray, Error> {
+    let arr = env.new_object_array(data.len() as i32, "java/lang/String", JObject::null())?;
+
+    for (i, val) in data.into_iter().enumerate() {
+        let s = env.new_string(val)?;
+        env.set_object_array_element(&arr, i as i32, s)?;
+    }
+
+    Ok(arr.into_raw())
 }
