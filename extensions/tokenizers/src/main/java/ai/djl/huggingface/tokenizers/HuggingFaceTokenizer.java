@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -57,14 +58,13 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
     private HuggingFaceTokenizer(long handle, Map<String, String> options) {
         super(handle);
         truncation = TruncationStrategy.LONGEST_FIRST;
-        String val = TokenizersLibrary.LIB.getPaddingStrategy(handle);
-        padding = PaddingStrategy.fromValue(val);
+        padding = PaddingStrategy.LONGEST;
         maxLength = TokenizersLibrary.LIB.getMaxLength(handle);
         stride = TokenizersLibrary.LIB.getStride(handle);
         padToMultipleOf = TokenizersLibrary.LIB.getPadToMultipleOf(handle);
 
         if (options != null) {
-            val = options.getOrDefault("addSpecialTokens", "true");
+            String val = options.getOrDefault("addSpecialTokens", "true");
             addSpecialTokens = Boolean.parseBoolean(val);
             val = options.getOrDefault("withOverflowingTokens", "false");
             withOverflowingTokens = Boolean.parseBoolean(val);
@@ -466,22 +466,6 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
         return batchDecode(batchIds, !addSpecialTokens);
     }
 
-    /** Sets padding and truncation to true for batching. */
-    public void enableBatch() {
-        boolean changed = false;
-        if (padding == PaddingStrategy.DO_NOT_PAD) {
-            changed = true;
-            padding = PaddingStrategy.LONGEST;
-        }
-        if (truncation == TruncationStrategy.DO_NOT_TRUNCATE) {
-            changed = true;
-            truncation = TruncationStrategy.LONGEST_FIRST;
-        }
-        if (changed) {
-            updateTruncationAndPadding();
-        }
-    }
-
     /**
      * Returns the truncation policy.
      *
@@ -703,7 +687,6 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
     /** The builder for creating huggingface tokenizer. */
     public static final class Builder {
 
-        private Path tokenizerPath;
         private NDManager manager;
         private Map<String, String> options;
 
@@ -741,7 +724,7 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
          * @return this builder
          */
         public Builder optTokenizerPath(Path tokenizerPath) {
-            this.tokenizerPath = tokenizerPath;
+            options.putIfAbsent("tokenizerPath", tokenizerPath.toString());
             return this;
         }
 
@@ -911,9 +894,11 @@ public final class HuggingFaceTokenizer extends NativeResource<Long> implements 
             if (tokenizerName != null) {
                 return managed(HuggingFaceTokenizer.newInstance(tokenizerName, options));
             }
-            if (tokenizerPath == null) {
+            String path = options.get("tokenizerPath");
+            if (path == null) {
                 throw new IllegalArgumentException("Missing tokenizer path.");
             }
+            Path tokenizerPath = Paths.get(path);
             if (Files.isDirectory(tokenizerPath)) {
                 Path tokenizerFile = tokenizerPath.resolve("tokenizer.json");
                 if (Files.exists(tokenizerFile)) {
