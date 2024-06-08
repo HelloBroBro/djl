@@ -28,12 +28,14 @@ public class Metric {
 
     private static final Pattern PATTERN =
             Pattern.compile(
-                    "\\s*([\\w\\s]+)\\.([\\w\\s]+):([0-9\\-,.e]+)(?>\\|#([^|]*))?(?>\\|(\\d+))?");
+                    "\\s*([\\w\\s]+)\\.([\\w\\s]+):([0-9\\-,.e]+)(?>\\|#([^|]*))?(?>\\|(\\d+))?(?>\\|([cgh]))?");
 
-    private static final Dimension HOST = new Dimension("Host", getLocalHostName());
+    private static final Dimension[] HOST = {new Dimension("Host", getLocalHostName())};
 
     @SerializedName("MetricName")
     private String metricName;
+
+    private transient MetricType metricType;
 
     @SerializedName("Value")
     private String value;
@@ -65,9 +67,10 @@ public class Metric {
      * @param metricName the metric name
      * @param value the metric value
      * @param unit the metric unit
+     * @param dimensions the metric dimensions
      */
-    public Metric(String metricName, Number value, Unit unit) {
-        this(metricName, value.toString(), unit.getValue(), null, HOST);
+    public Metric(String metricName, Number value, Unit unit, Dimension... dimensions) {
+        this(metricName, null, value, unit, dimensions);
     }
 
     /**
@@ -75,18 +78,25 @@ public class Metric {
      * </code>, and {@code unit}.
      *
      * @param metricName the metric name
+     * @param metricType the {@link MetricType}
      * @param value the metric value
      * @param unit the metric unit
      * @param dimensions the metric dimensions
      */
-    public Metric(String metricName, Number value, Unit unit, Dimension... dimensions) {
-        this(metricName, value.toString(), unit.getValue(), null, dimensions);
+    public Metric(
+            String metricName,
+            MetricType metricType,
+            Number value,
+            Unit unit,
+            Dimension... dimensions) {
+        this(metricName, metricType, value.toString(), unit.getValue(), null, dimensions);
     }
 
     /**
      * Constructs a new {@code Metric} instance.
      *
      * @param metricName the metric name
+     * @param metricType the {@link MetricType}
      * @param value the metric value
      * @param unit the metric unit
      * @param timestamp the metric timestamp
@@ -94,15 +104,17 @@ public class Metric {
      */
     private Metric(
             String metricName,
+            MetricType metricType,
             String value,
             String unit,
             String timestamp,
             Dimension... dimensions) {
         this.metricName = metricName;
+        this.metricType = metricType;
         this.unit = unit;
         this.value = value;
         this.timestamp = timestamp;
-        this.dimensions = dimensions;
+        this.dimensions = dimensions.length == 0 ? HOST : dimensions;
     }
 
     /**
@@ -112,7 +124,7 @@ public class Metric {
      * @return a copy of the metric
      */
     public Metric copyOf(String name) {
-        return new Metric(name, value, unit, timestamp, dimensions);
+        return new Metric(name, metricType, value, unit, timestamp, dimensions);
     }
 
     /**
@@ -122,6 +134,15 @@ public class Metric {
      */
     public String getMetricName() {
         return metricName;
+    }
+
+    /**
+     * Returns the type of the {@code Metric}.
+     *
+     * @return the metric type
+     */
+    public MetricType getMetricType() {
+        return metricType;
     }
 
     /**
@@ -167,7 +188,7 @@ public class Metric {
      * @return a {@code Metric} object
      */
     public static Metric parse(String line) {
-        // DiskAvailable.Gigabytes:311|#Host:localhost|1650953744320
+        // DiskAvailable.Gigabytes:311|#Host:localhost|1650953744320|c
         Matcher matcher = PATTERN.matcher(line);
         if (!matcher.matches()) {
             return null;
@@ -178,8 +199,10 @@ public class Metric {
         String value = matcher.group(3);
         String dimension = matcher.group(4);
         String timestamp = matcher.group(5);
+        String type = matcher.group(6);
+        MetricType metricType = type == null ? null : MetricType.of(type);
 
-        Dimension[] dimensions = null;
+        Dimension[] dimensions;
         if (dimension != null) {
             String[] dims = dimension.split(",");
             dimensions = new Dimension[dims.length];
@@ -190,9 +213,11 @@ public class Metric {
                     dimensions[index++] = new Dimension(pair[0], pair[1]);
                 }
             }
+        } else {
+            dimensions = HOST;
         }
 
-        return new Metric(metricName, value, unit, timestamp, dimensions);
+        return new Metric(metricName, metricType, value, unit, timestamp, dimensions);
     }
 
     /** {@inheritDoc} */
@@ -217,6 +242,9 @@ public class Metric {
         }
         if (timestamp != null) {
             sb.append('|').append(timestamp);
+        }
+        if (metricType != null) {
+            sb.append('|').append(metricType.getValue());
         }
         return sb.toString();
     }
