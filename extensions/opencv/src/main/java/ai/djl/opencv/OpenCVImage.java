@@ -205,12 +205,25 @@ class OpenCVImage implements Image {
         int imageWidth = image.width();
         int imageHeight = image.height();
 
-        Scalar color =
-                new Scalar(
-                        RandomUtils.nextInt(178),
-                        RandomUtils.nextInt(178),
-                        RandomUtils.nextInt(178));
-        for (Joints.Joint joint : joints.getJoints()) {
+        List<Joints.Joint> list = joints.getJoints();
+        if (list.size() == 17) {
+            Scalar color = new Scalar(37, 255, 224);
+            drawLine(list.get(5), list.get(7), imageWidth, imageHeight, color);
+            drawLine(list.get(7), list.get(9), imageWidth, imageHeight, color);
+            drawLine(list.get(6), list.get(8), imageWidth, imageHeight, color);
+            drawLine(list.get(8), list.get(10), imageWidth, imageHeight, color);
+            drawLine(list.get(11), list.get(13), imageWidth, imageHeight, color);
+            drawLine(list.get(12), list.get(14), imageWidth, imageHeight, color);
+            drawLine(list.get(13), list.get(15), imageWidth, imageHeight, color);
+            drawLine(list.get(14), list.get(16), imageWidth, imageHeight, color);
+            drawLine(list.get(5), list.get(6), imageWidth, imageHeight, color);
+            drawLine(list.get(11), list.get(12), imageWidth, imageHeight, color);
+            drawLine(list.get(5), list.get(11), imageWidth, imageHeight, color);
+            drawLine(list.get(6), list.get(12), imageWidth, imageHeight, color);
+        }
+
+        Scalar color = new Scalar(190, 150, 37);
+        for (Joints.Joint joint : list) {
             int x = (int) (joint.getX() * imageWidth);
             int y = (int) (joint.getY() * imageHeight);
             Point point = new Point(x, y);
@@ -340,6 +353,14 @@ class OpenCVImage implements Image {
         return new OpenCVImage(result);
     }
 
+    private void drawLine(Joints.Joint from, Joints.Joint to, int width, int height, Scalar color) {
+        int x0 = (int) (from.getX() * width);
+        int y0 = (int) (from.getY() * height);
+        int x1 = (int) (to.getX() * width);
+        int y1 = (int) (to.getY() * height);
+        Imgproc.line(image, new Point(x0, y0), new Point(x1, y1), color, 2, Imgproc.LINE_AA);
+    }
+
     private void drawLandmarks(BoundingBox box) {
         Scalar color = new Scalar(0, 96, 246);
         for (ai.djl.modality.cv.output.Point point : box.getPath()) {
@@ -374,12 +395,19 @@ class OpenCVImage implements Image {
             }
         }
         float[][] probDist = mask.getProbDist();
+        float max = 0;
+        for (float[] row : probDist) {
+            for (float f : row) {
+                max = Math.max(max, f);
+            }
+        }
+        float ratio = 0.5f / max;
 
         BufferedImage maskImage =
                 new BufferedImage(probDist[0].length, probDist.length, BufferedImage.TYPE_INT_ARGB);
         for (int yCor = 0; yCor < probDist.length; yCor++) {
             for (int xCor = 0; xCor < probDist[0].length; xCor++) {
-                float opacity = probDist[yCor][xCor] * 0.8f;
+                float opacity = probDist[yCor][xCor] * ratio;
                 maskImage.setRGB(xCor, yCor, new Color(r, g, b, opacity).darker().getRGB());
             }
         }
