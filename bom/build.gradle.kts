@@ -24,7 +24,6 @@ dependencies {
         api("ai.djl.fasttext:fasttext-engine:${version}")
         api("ai.djl.hadoop:hadoop:${version}")
         api("ai.djl.huggingface:tokenizers:${version}")
-        api("ai.djl.llama:llama:${version}")
         api("ai.djl.ml.lightgbm:lightgbm:${version}")
         api("ai.djl.ml.xgboost:xgboost-gpu:${version}")
         api("ai.djl.ml.xgboost:xgboost:${version}")
@@ -135,7 +134,7 @@ publishing {
                         +"ai.djl.pytorch:pytorch-native-cu117:$pytorch:linux-x86_64"
                         +"ai.djl.pytorch:pytorch-native-cu117:$pytorch:win-x86_64"
                         +"ai.djl.pytorch:pytorch-native-cu117-precxx11:$pytorch:linux-x86_64"
-                        val tensorflow = "${libs.versions.tensorflow.get()}-SNAPSHOT"
+                        val tensorflow = "${libs.versions.tensorflow.get()}"
                         +"ai.djl.tensorflow:tensorflow-native-cpu:$tensorflow:osx-x86_64"
                         +"ai.djl.tensorflow:tensorflow-native-cpu:$tensorflow:osx-aarch64"
                         +"ai.djl.tensorflow:tensorflow-native-cpu:$tensorflow:linux-x86_64"

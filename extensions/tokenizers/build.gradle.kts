@@ -8,6 +8,11 @@ plugins {
 
 group = "ai.djl.huggingface"
 
+val flavor = when {
+    project.hasProperty("cuda") -> project.property("cuda").toString()
+    else -> "cpu"
+}
+
 dependencies {
     api(project(":api"))
 
@@ -33,11 +38,10 @@ tasks {
                 "win-x86_64/libwinpthread-1.dll" to "extra",
                 "win-x86_64/libgcc_s_seh-1.dll" to "extra",
                 "win-x86_64/libstdc%2B%2B-6.dll" to "extra",
-                "win-x86_64/tokenizers.dll" to "$tokenizers/jnilib/$djl",
-                "linux-x86_64/libtokenizers.so" to "$tokenizers/jnilib/$djl",
-                "linux-aarch64/libtokenizers.so" to "$tokenizers/jnilib/$djl",
-                "osx-x86_64/libtokenizers.dylib" to "$tokenizers/jnilib/$djl",
-                "osx-aarch64/libtokenizers.dylib" to "$tokenizers/jnilib/$djl"
+                "win-x86_64/cpu/tokenizers.dll" to "$tokenizers/jnilib/$djl",
+                "linux-x86_64/cpu/libtokenizers.so" to "$tokenizers/jnilib/$djl",
+                "linux-aarch64/cpu/libtokenizers.so" to "$tokenizers/jnilib/$djl",
+                "osx-aarch64/cpu/libtokenizers.dylib" to "$tokenizers/jnilib/$djl"
             )
             val jnilibDir = project.projectDir / "jnilib/$djl"
             for ((key, value) in files) {
@@ -101,7 +105,7 @@ tasks {
             if ("mac" in os || "linux" in os) {
                 val arch = if (arch == "amd64") "x86_64" else arch
                 exec {
-                    commandLine("bash", "build.sh", libs.versions.tokenizers.get(), arch)
+                    commandLine("bash", "build.sh", libs.versions.tokenizers.get(), arch, flavor)
                 }
             } else
                 exec {
