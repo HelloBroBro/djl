@@ -25,9 +25,13 @@ tasks {
     compileJava { dependsOn(processResources) }
 
     processResources {
-        inputs.properties(mapOf("djlVersion" to libs.versions.djl.get(),
-            "tokenizersVersion" to libs.versions.tokenizers.get(),
-            "version" to version))
+        inputs.properties(
+            mapOf(
+                "djlVersion" to libs.versions.djl.get(),
+                "tokenizersVersion" to libs.versions.tokenizers.get(),
+                "version" to version
+            )
+        )
         val baseResourcePath = "${project.projectDir}/build/resources/main"
         outputs.dirs(File("${baseResourcePath}/native/lib"), File("${baseResourcePath}/nlp"))
 
@@ -35,12 +39,13 @@ tasks {
             var url = "https://publish.djl.ai/tokenizers"
             val (tokenizers, djl) = libs.versions.tokenizers.get() to libs.versions.djl.get()
             val files = mapOf(
-                "win-x86_64/libwinpthread-1.dll" to "extra",
-                "win-x86_64/libgcc_s_seh-1.dll" to "extra",
-                "win-x86_64/libstdc%2B%2B-6.dll" to "extra",
+                "win-x86_64/cpu/libwinpthread-1.dll" to "extra/win-x86_64/libwinpthread-1.dll",
+                "win-x86_64/cpu/libgcc_s_seh-1.dll" to "extra/win-x86_64/libgcc_s_seh-1.dll",
+                "win-x86_64/cpu/libstdc%2B%2B-6.dll" to "extra/win-x86_64/libstdc%2B%2B-6.dll",
                 "win-x86_64/cpu/tokenizers.dll" to "$tokenizers/jnilib/$djl",
                 "linux-x86_64/cpu/libtokenizers.so" to "$tokenizers/jnilib/$djl",
                 "linux-aarch64/cpu/libtokenizers.so" to "$tokenizers/jnilib/$djl",
+                "osx-x86_64/cpu/libtokenizers.dylib" to "$tokenizers/jnilib/$djl",
                 "osx-aarch64/cpu/libtokenizers.dylib" to "$tokenizers/jnilib/$djl"
             )
             val jnilibDir = project.projectDir / "jnilib/$djl"
@@ -48,7 +53,12 @@ tasks {
                 val file = jnilibDir / URLDecoder.decode(key, "UTF-8")
                 if (file.exists())
                     project.logger.lifecycle("prebuilt or cached file found for $key")
-                else if ("extra" == value || !project.hasProperty("jni")) {
+                else if (value.startsWith("extra")) {
+                    project.logger.lifecycle("Downloading $url/$value")
+                    file.parentFile.mkdirs()
+                    val downloadPath = "$url/$value".url
+                    downloadPath into file
+                } else if (!project.hasProperty("jni")) {
                     project.logger.lifecycle("Downloading $url/$value/$key")
                     file.parentFile.mkdirs()
                     val downloadPath = "$url/$value/$key".url
