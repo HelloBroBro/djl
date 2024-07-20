@@ -28,13 +28,13 @@ The javadocs output is built in the `build/doc/javadoc` folder.
 
 You can pull the TensorFlow engine from the central Maven repository by including the following dependency:
 
-- ai.djl.tensorflow:tensorflow-engine:0.28.0
+- ai.djl.tensorflow:tensorflow-engine:0.29.0
 
 ```xml
 <dependency>
     <groupId>ai.djl.tensorflow</groupId>
     <artifactId>tensorflow-engine</artifactId>
-    <version>0.28.0</version>
+    <version>0.29.0</version>
     <scope>runtime</scope>
 </dependency>
 ```
@@ -69,7 +69,7 @@ installed on your GPU machine, you can use one of the following library:
 ```xml
 <dependency>
     <groupId>ai.djl.tensorflow</groupId>
-    <artifactId>tensorflow-native-cu113</artifactId>
+    <artifactId>tensorflow-native-cu121</artifactId>
     <classifier>linux-x86_64</classifier>
     <version>2.7.0</version>
     <scope>runtime</scope>
@@ -96,21 +96,21 @@ For the Windows platform, you can choose between CPU and GPU.
 
 #### Windows GPU
 
-- ai.djl.tensorflow:tensorflow-native-cu113:2.7.0:win-x86_64
+- ai.djl.tensorflow:tensorflow-native-cu121:2.16.1:win-x86_64
 
 ```xml
 <dependency>
     <groupId>ai.djl.tensorflow</groupId>
-    <artifactId>tensorflow-native-cu113</artifactId>
+    <artifactId>tensorflow-native-cu121</artifactId>
     <classifier>win-x86_64</classifier>
-    <version>2.7.0</version>
+    <version>2.16.1</version>
     <scope>runtime</scope>
 </dependency>
 ```
 
 ### Windows CPU
 
-- ai.djl.tensorflow:tensorflow-native-cpu:2.7.0:win-x86_64
+- ai.djl.tensorflow:tensorflow-native-cpu:2.16.1:win-x86_64
 
 ```xml
 <dependency>
@@ -118,6 +118,6 @@ For the Windows platform, you can choose between CPU and GPU.
     <artifactId>tensorflow-native-cpu</artifactId>
     <classifier>win-x86_64</classifier>
     <scope>runtime</scope>
-    <version>2.7.0</version>
+    <version>2.16.1</version>
 </dependency>
 ```
