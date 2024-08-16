@@ -486,8 +486,13 @@ impl CamembertModel {
             (Ok(embeddings), Ok(encoder)) => (embeddings, encoder),
             (Err(err), _) | (_, Err(err)) => {
                 if let (Ok(embeddings), Ok(encoder)) = (
-                    BertEmbeddings::load(vb.pp("camembert.embeddings".to_string()), config),
-                    BertEncoder::load(vb.pp("camembert.encoder".to_string()), config),
+                    BertEmbeddings::load(vb.pp("roberta.embeddings".to_string()), config),
+                    BertEncoder::load(vb.pp("roberta.encoder".to_string()), config),
+                ) {
+                    (embeddings, encoder)
+                } else if let (Ok(embeddings), Ok(encoder)) = (
+                    BertEmbeddings::load(vb.pp("deberta.embeddings".to_string()), config),
+                    BertEncoder::load(vb.pp("deberta.encoder".to_string()), config),
                 ) {
                     (embeddings, encoder)
                 } else {

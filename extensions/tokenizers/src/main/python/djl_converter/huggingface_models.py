@@ -33,6 +33,8 @@ ARCHITECTURES_2_TASK = {
     "ForMultipleChoice": "text-classification",
     "ForMaskedLM": "fill-mask",
     "BertModel": "sentence-similarity",
+    "RobertaModel": "sentence-similarity",
+    "MistralModel": "sentence-similarity",
 }
 SUPPORTED_TASKS = {
     "fill-mask": FillMaskConverter(),
